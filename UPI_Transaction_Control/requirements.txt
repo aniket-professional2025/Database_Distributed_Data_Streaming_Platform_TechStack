@@ -1,0 +1,8 @@
+psycopg2-binary
+cassandra-driver
+redis
+kafka-python
+prometheus_client
+python-dotenv
+uuid
+requests
