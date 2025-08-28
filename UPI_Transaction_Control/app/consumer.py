@@ -74,7 +74,7 @@ def process_message(msg, db, cache, cass):
 
 # Main Function
 def main():
-    start_metrics()
+    start_metrics(port = 8000)
     db = PostgresDB()
     cache = CacheRedis()
     cass = CassandraClient(['cassandra'])
@@ -94,4 +94,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
