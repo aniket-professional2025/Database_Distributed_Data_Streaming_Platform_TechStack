@@ -135,4 +135,49 @@ This project simulates **UPI transactions** between users using multiple technol
 1. Create `.env` (already provided).
 2. Build and start services:
    ```bash
+
    docker-compose up --build
+
+## Other Codes Related to this Complete Project
+1. Delete all micro-services present in docker: 
+   ```bash
+   docker-compose down
+  ```
+
+2. To restart and rebuild all the micro-services present in docker:
+   ```bash
+   docker-compose up --build
+  ```
+3. To check all the runing and available micro-services present in docker:
+   ```bash
+   docker ps
+  ```
+4. To open and go inside the postgres database:
+   ```bash
+   docker exec -it upi-simulator-postgres-1 bash # Name of the docker app for postgres database
+   psql -U upi_user -d upi_db
+   \dt # To check for the available tables
+   SELECT * FROM transactions LIMIT 10;
+   SELECT * FROM users;
+   \q # To quit
+  ```
+
+5. To open and go inside the Casandra database:
+   ```bash
+   docker exec -it upi-simulator-cassandra-1 bash # Name of the docker app for casandra database
+   cqlsh
+   DESCRIBE KEYSPACES;
+   USE upi;
+   DESCRIBE TABLES;
+   SELECT * FROM audit_logs LIMIT 10;
+   ctrl + D # To quit
+  ```
+
+6. To open and go inside the Redis database:
+   ```bash
+   docker exec -it upi-simulator-redis-1 redis-cli # # Name of the docker app for Redis database
+   KEYS * # To check for keys
+   GET balance:user_5 # Get value for the key
+   GET daily:user_5:2025-08-27 # Get value for the key
+   exit # To exit
+  ```
