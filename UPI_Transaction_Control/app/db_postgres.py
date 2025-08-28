@@ -57,22 +57,15 @@ class PostgresDB:
             cur.execute(CREATE_TXNS)
             self.conn.commit()
 
-    # def _ensure_schema(self):
-    #     with self.conn.cursor() as cur:
-    #     cur.execute(CREATE_USERS)
-    #     cur.execute(CREATE_TXNS)
-    #     self.conn.commit()
-
-    # # Pre-seed users if not already there
-    # with self.conn.cursor() as cur:
-    #     for i in range(1, 6):  # create 5 users
-    #         cur.execute(
-    #             "INSERT INTO users (id, name, balance) VALUES (%s, %s, %s) ON CONFLICT (id) DO NOTHING",
-    #             (f"user_{i}", f"user_{i}", 1000000)  # start with 1M balance each
-    #         )
-    #     self.conn.commit()
-        
-
+        # Pre-seed users if not already there
+        with self.conn.cursor() as cur:
+            for i in range(1, 6):  # create 5 users
+                cur.execute(
+                "INSERT INTO users (id, name, balance) VALUES (%s, %s, %s) ON CONFLICT (id) DO NOTHING",
+                (f"user_{i}", f"user_{i}", 1000000)  # start with 1M balance each
+            )
+            self.conn.commit()
+            
     def create_user(self, user_id, name, balance=0):
         with self.conn.cursor() as cur:
             cur.execute("INSERT INTO users (id, name, balance) VALUES (%s,%s,%s) ON CONFLICT (id) DO NOTHING", (user_id, name, balance))
@@ -93,4 +86,5 @@ class PostgresDB:
         with self.conn.cursor() as cur:
             cur.execute("INSERT INTO transactions (tx_id,payer_id,payee_id,amount,currency,status,reason) VALUES (%s,%s,%s,%s,%s,%s,%s)",
                         (tx.tx_id, tx.payer_id, tx.payee_id, tx.amount, tx.currency, tx.status, tx.reason))
+
             self.conn.commit()
