@@ -23,7 +23,7 @@ def connect_kafka(bootstrap, topic, retries = 50, delay = 5):
     raise Exception("Failed to connect to Kafka after multiple attempts")
 
 # Simulating Transactions
-def run_simulator(num_users = 5, interval = 0.5, total = 800, log_every = 100):
+def run_simulator(num_users = 5, interval = 0.5, total = 50, log_every = 10):
     kc = connect_kafka(KAFKA_BOOTSTRAP, KAFKA_TOPIC)
     print("Starting Producer")
     for i in range(total):
@@ -49,4 +49,5 @@ def run_simulator(num_users = 5, interval = 0.5, total = 800, log_every = 100):
         time.sleep(interval)
 
 if __name__ == '__main__':
+
     run_simulator()
