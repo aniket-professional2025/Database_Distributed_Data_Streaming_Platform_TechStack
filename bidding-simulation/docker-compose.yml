@@ -1,0 +1,210 @@
+# version: "3.8"
+# services:
+#   zookeeper:
+#     image: confluentinc/cp-zookeeper:7.4.1
+#     environment:
+#       ZOOKEEPER_CLIENT_PORT: 2181
+#       ZOOKEEPER_TICK_TIME: 2000
+#     ports:
+#       - "2181:2181"
+
+#   kafka:
+#     image: confluentinc/cp-kafka:7.4.1
+#     depends_on:
+#       - zookeeper
+#     environment:
+#       KAFKA_BROKER_ID: 1
+#       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+#       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+#       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+#       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+#     ports:
+#       - "9092:9092"
+
+#   postgres:
+#     image: postgres:15
+#     environment:
+#       POSTGRES_USER: postgres
+#       POSTGRES_PASSWORD: postgres
+#       POSTGRES_DB: bidding
+#     volumes:
+#       - ./app/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+#     ports:
+#       - "5432:5432"
+
+#   cassandra:
+#     image: cassandra:4.1
+#     environment:
+#       CASSANDRA_START_RPC: "true"
+#     ports:
+#       - "9042:9042"
+#     volumes:
+#       - ./app/init_cassandra.cql:/docker-entrypoint-initdb.d/init_cassandra.cql:ro
+
+#   redis:
+#     image: redis:7
+#     ports:
+#       - "6379:6379"
+
+#   prometheus:
+#     image: prom/prometheus:latest
+#     volumes:
+#       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+#     command:
+#       - "--config.file=/etc/prometheus/prometheus.yml"
+#     ports:
+#       - "9090:9090"
+#     # depends_on:
+#       # - app
+
+#   grafana:
+#     image: grafana/grafana:9.5.6
+#     environment:
+#       - GF_SECURITY_ADMIN_PASSWORD=admin
+#     ports:
+#       - "3000:3000"
+#     depends_on:
+#       - prometheus
+
+#   app:
+#     build: ./app
+#     container_name: bid-simulation
+#     depends_on:
+#       - kafka
+#       - postgres
+#       - cassandra
+#       - redis
+#       - prometheus
+#     environment:
+#       KAFKA_BOOTSTRAP: "kafka:9092"
+#       POSTGRES_DSN: "postgresql://postgres:postgres@postgres:5432/bidding"
+#       CASSANDRA_HOST: "cassandra"
+#       REDIS_HOST: "redis"
+#       PROM_METRICS_PORT: "8000"
+#     ports:
+#       - "8501:8501"   # streamlit
+#       - "8000:8000"   # prometheus metrics server
+#     tty: true
+
+services:
+  # --- Messaging & Storage Stack ---
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.1
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.1
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: bidding
+    volumes:
+      - ./app/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql:ro
+    ports:
+      - "5432:5432"
+
+  cassandra:
+    image: cassandra:4.1
+    environment:
+      CASSANDRA_START_RPC: "true"
+    ports:
+      - "9042:9042"
+    volumes:
+      - ./app/init_cassandra.cql:/docker-entrypoint-initdb.d/init_cassandra.cql:ro
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:9.5.6
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+  # --- Application Stack ---
+  app:
+    build: ./app
+    container_name: bid-simulation
+    command: ["python", "-m", "streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+    depends_on:
+      - kafka
+      - postgres
+      - cassandra
+      - redis
+      - prometheus
+    environment:
+      KAFKA_BOOTSTRAP: "kafka:9092"
+      POSTGRES_DSN: "postgresql://postgres:postgres@postgres:5432/bidding"
+      CASSANDRA_HOST: "cassandra"
+      REDIS_HOST: "redis"
+      PROM_METRICS_PORT: "8000"
+    ports:
+      - "8501:8501"   # Streamlit UI
+      - "8000:8000"   # Prometheus metrics server
+    tty: true
+
+  bid-validator:
+    build: ./app
+    container_name: bid-validator
+    command: ["python", "bid_validate.py"]
+    depends_on:
+      - kafka
+      - postgres
+      - redis
+    environment:
+      KAFKA_BOOTSTRAP: "kafka:9092"
+      POSTGRES_DSN: "postgresql://postgres:postgres@postgres:5432/bidding"
+      REDIS_HOST: "redis"
+
+  bid-tracker:
+    build: ./app
+    container_name: bid-tracker
+    command: ["python", "track.py"]
+    depends_on:
+      - kafka
+      - redis
+    environment:
+      KAFKA_BOOTSTRAP: "kafka:9092"
+      REDIS_HOST: "redis"
+
+  # kafka-notifier:
+  #   build: ./app
+  #   container_name: kafka-notifier
+  #   command: ["python", "kafka_notifier.py"]
+  #   depends_on:
+  #     - kafka
+  #   environment:
+  #     KAFKA_BOOTSTRAP: "kafka:9092"
