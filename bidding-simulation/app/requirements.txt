@@ -1,0 +1,10 @@
+streamlit>=1.24.0
+kafka-python>=2.0.2
+psycopg2-binary>=2.9.6
+cassandra-driver>=3.26.0
+redis>=4.5.1
+prometheus-client>=0.17.0
+sqlalchemy>=2.0.16
+pandas>=2.0.2
+python-dotenv>=1.0.0
+streamlit-autorefresh>=1.0.1
