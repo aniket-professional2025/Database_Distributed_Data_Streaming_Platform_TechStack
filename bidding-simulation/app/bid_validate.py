@@ -30,35 +30,38 @@ def run_consumer():
         enable_auto_commit=True,
         group_id='bid-validators'
     )
-
+    print("[Validator] Waiting for Postgres...")
     engine = wait_for_postgres()
+    print("[Validator] Waiting for Redis...")
     r = wait_for_redis()
+    print("[Validator] Waiting for Cassandra...")
     session = wait_for_cassandra() # <-- CONNECT TO CASSANDRA
 
-    # Create the keyspace and table if they don't exist
-    session.execute("""
-        CREATE KEYSPACE IF NOT EXISTS bidding WITH replication = {
-            'class': 'SimpleStrategy',
-            'replication_factor': '1'
-        }
-    """)
-    session.set_keyspace('bidding')
+    # # Create the keyspace and table if they don't exist
+    # session.execute("""
+    #     CREATE KEYSPACE IF NOT EXISTS bidding WITH replication = {
+    #         'class': 'SimpleStrategy',
+    #         'replication_factor': '1'
+    #     }
+    # """)
+    # session.set_keyspace('bidding')
 
-    session.execute("""
-        CREATE TABLE IF NOT EXISTS bid_logs (
-            bid_id text,
-            user_id text,
-            item_number text,
-            amount float,
-            status text,
-            reason text,
-            created_at timestamp,
-            PRIMARY KEY (bid_id)
-        )
-    """)
+    # session.execute("""
+    #     CREATE TABLE IF NOT EXISTS bid_logs (
+    #         bid_id text,
+    #         user_id text,
+    #         item_number text,
+    #         amount float,
+    #         status text,
+    #         reason text,
+    #         created_at timestamp,
+    #         PRIMARY KEY (bid_id)
+    #     )
+    # """)
 
     prepared_stmt = session.prepare("INSERT INTO bid_logs (bid_id, user_id, item_number, amount, status, reason, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)") # <-- PREPARE STATEMENT
-
+    
+    print("[Validator] All database connections established. Starting Kafka consumer loop.")
     for msg in consumer:
         bid = msg.value
         BIDS_TOTAL.inc()

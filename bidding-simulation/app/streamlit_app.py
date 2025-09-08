@@ -85,17 +85,20 @@ if submitted:
 # Database loaders: Postgres
 def load_postgres_table():
     try:
+        print("[Streamlit] Loading data from Postgres...")
         engine = wait_for_postgres()
         with engine.connect() as conn:
             users_df = pd.read_sql("SELECT * FROM users ORDER BY created_at DESC LIMIT 50", conn)
             bids_df = pd.read_sql("SELECT * FROM bids ORDER BY created_at DESC LIMIT 50", conn)
         return users_df, bids_df
-    except Exception:
+    except Exception as e:
+        print(f"[Streamlit] Postgres connection failed: {e}")
         return None, None
 
 # Database loaders: Redis
 def load_redis_snapshot():
     try:
+        print("[Streamlit] Loading data from Redis...")
         r = wait_for_redis()
         items = {}
         for key in r.scan_iter(match='item:*'):
@@ -103,16 +106,19 @@ def load_redis_snapshot():
             vals = r.zrange(key, 0, -1, withscores=True)
             items[item] = vals[-5:]  # show top 5
         return items
-    except Exception:
+    except Exception as e:
+        print(f"[Streamlit] Redis connection failed: {e}")
         return {}
 
 # Database loaders: Cassandra
 def load_cassandra_audit():
     try:
+        print("[Streamlit] Loading data from Cassandra...")
         session = wait_for_cassandra()
         rows = session.execute("SELECT * FROM bid_logs LIMIT 50")
         return pd.DataFrame(rows)
-    except Exception:
+    except Exception as e:
+        print(f"[Streamlit] Cassandra connection failed: {e}")
         return None
 
 # Display database snapshots (row-wise)

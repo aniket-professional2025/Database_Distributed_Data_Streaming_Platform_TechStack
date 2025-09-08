@@ -19,9 +19,11 @@ def wait_for_postgres():
             engine = create_engine(POSTGRES_DSN, connect_args={})
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
+            print(f"[DB] Postgres connected successfully after {i+1} retries.")
             return engine
         except Exception as e:
             last_exc = e
+            print(f"[DB] Attempt {i+1}/{RETRIES}: Postgres not ready, retrying in {SLEEP}s...")
             time.sleep(SLEEP)
     raise last_exc
 
@@ -53,10 +55,11 @@ def wait_for_cassandra():
                     PRIMARY KEY (bid_id)
                 )
             """)
-            
+            print(f"[DB] Cassandra connected successfully after {i+1} retries.")
             return session
         except Exception as e:
             last_exc = e
+            print(f"[DB] Attempt {i+1}/{RETRIES}: Cassandra not ready, retrying in {SLEEP}s...")
             time.sleep(SLEEP)
     raise last_exc
 
@@ -67,8 +70,10 @@ def wait_for_redis():
         try:
             r = redis.Redis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
             r.ping()
+            print(f"[DB] Redis connected successfully after {i+1} retries.")
             return r
         except Exception as e:
             last_exc = e
+            print(f"[DB] Attempt {i+1}/{RETRIES}: Redis not ready, retrying in {SLEEP}s...")
             time.sleep(SLEEP)
     raise last_exc
