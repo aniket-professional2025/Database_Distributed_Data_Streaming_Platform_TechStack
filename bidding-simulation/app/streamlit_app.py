@@ -1,6 +1,5 @@
 # Importing Required Libraries
 import streamlit as st
-import time
 import threading
 import pandas as pd
 from producer import get_producer, publish_bid
@@ -13,7 +12,7 @@ import json
 from app_settings import KAFKA_BOOTSTRAP
 from collections import deque
 from streamlit_autorefresh import st_autorefresh
-from prometheus_metrics import start_metrics_server, BIDS_TOTAL, BIDS_SUCCESS, BIDS_FAILED, HIGHEST_BID, BID_PROCESSING_TIME
+from prometheus_metrics import start_metrics_server
 
 # Use st.session_state to ensure the metrics server is started only once
 if "metrics_server_started" not in st.session_state:
@@ -29,8 +28,8 @@ if "metrics_server_started" not in st.session_state:
             raise e
 
 # Page setup
-st.set_page_config(page_title="Bid Simulation", layout="wide")
-st.markdown("<h1>Bid Simulation Control Panel</h1>", unsafe_allow_html=True)
+st.set_page_config(page_title = "Bid Simulation", layout = "wide")
+st.markdown("<h1>Bid Simulation Control Panel</h1>", unsafe_allow_html = True)
 
 # Initialize state with a counter for log steps
 if "log_step" not in st.session_state:
@@ -51,15 +50,15 @@ log_messages_template = [
     "Data flow completed. All databases updated."
 ]
 
-# The st_autorefresh is the key to this solution
-refresh_interval = 3000 # 3 seconds
+# Refresh every second during log updates, then every 1 seconds afterwards
+refresh_interval = 1000 # 1 second
 if st.session_state.log_step >= 0 and st.session_state.log_step < len(log_messages_template):
-    st_autorefresh(interval=refresh_interval, key=f"refresh_log_{st.session_state.log_step}")
+    st_autorefresh(interval=refresh_interval, key = f"refresh_log_{st.session_state.log_step}")
 else:
     st_autorefresh(interval=5000, key="refresh_tables")
 
 # Live Logs section
-st.markdown("<h3 style='margin-top: 0px;'>Live Bid Process Logs</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='margin-top: 0px;'>Live Bid Process Logs</h3>", unsafe_allow_html = True)
 log_placeholder = st.empty()
 
 # Background services: Start tracker thread (reads redis and updates gauges)
@@ -67,7 +66,7 @@ start_tracker_in_thread()
 
 # Start bid consumer in background thread
 def start_consumer_thread():
-    t = threading.Thread(target=run_consumer, daemon=True)
+    t = threading.Thread(target = run_consumer, daemon = True)
     t.start()
     return t
 
@@ -80,7 +79,7 @@ producer = get_producer()
 
 # Kafka Notifications Consumer (using deque)
 if "notif_buffer" not in st.session_state:
-    st.session_state.notif_buffer = deque(maxlen=20)
+    st.session_state.notif_buffer = deque(maxlen = 20)
 
 # Function to consume notifications in background
 def consume_notifications(buffer):
@@ -126,14 +125,14 @@ if submitted:
     publish_bid(producer, bid)
     
     # Add the first log message and trigger the first refresh
-    st.session_state.log_messages.append(f"{now_iso()} - {log_messages_template[0]}")
+    st.session_state.log_messages.append(log_messages_template[0])
     st.rerun()
 
 # Display live logs based on the current step
 if st.session_state.log_step >= 0 and st.session_state.log_step < len(log_messages_template):
     # This block will re-run every 3 seconds
     if len(st.session_state.log_messages) <= st.session_state.log_step:
-        st.session_state.log_messages.append(f"{now_iso()} - {log_messages_template[st.session_state.log_step]}")
+        st.session_state.log_messages.append(log_messages_template[st.session_state.log_step])
         
     with log_placeholder.container():
         for log_msg in st.session_state.log_messages:
